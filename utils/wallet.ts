@@ -31,7 +31,7 @@ export class Wallet {
 
     constructor(walletParam: IWallet) {
         const seedhex = walletParam.seed;
-        const seed = Buffer.from(seedhex, 'hex')
+        const seed = Buffer.from(seedhex, 'hex');
 
     //     if (!bip39.validateMnemonic(mnemonic)) {
     //         throw new Error("invalid mnemonic");
