@@ -30,14 +30,16 @@ export class Wallet {
     public tweakedSigner: Signer;
 
     constructor(walletParam: IWallet) {
-        const mnemonic = walletParam.seed;
+        const seedhex = walletParam.seed;
+        const seed = Buffer.from(seedhex, 'hex')
 
-        if (!bip39.validateMnemonic(mnemonic)) {
-            throw new Error("invalid mnemonic");
-        }
+    //     if (!bip39.validateMnemonic(mnemonic)) {
+    //         throw new Error("invalid mnemonic");
+    //     }
 
         this.bip32 = bip32.fromSeed(
-            bip39.mnemonicToSeedSync(mnemonic),
+    //        bip39.mnemonicToSeedSync(mnemonic),
+            seed,
             this.network
         );
         this.ecPair = ECPair.fromPrivateKey(
