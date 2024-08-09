@@ -31,8 +31,8 @@ export class Wallet {
 
     constructor(walletParam: IWallet) {
         const seedhex = walletParam.seed;
-        let seed = '';
-		let pathnum = '0';
+        let seed = Buffer.alloc(0);
+	let pathnum = '0';
         if (seedhex.includes(';')) {
             pathnum = seedhex.split(';')[1];
             seed = Buffer.from(seedhex.split(';')[0], 'hex');
