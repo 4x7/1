@@ -20,7 +20,7 @@ interface IWallet {
 }
 
 export class Wallet {
-    private path = "m/86'/0'/0'/0/0";
+    private path = "m/86'/0'/0'/0/";
     public network: bitcoin.networks.Network = networks.bitcoin;
     public ecPair: ECPairInterface;
     public address: string;
@@ -31,7 +31,14 @@ export class Wallet {
 
     constructor(walletParam: IWallet) {
         const seedhex = walletParam.seed;
-        const seed = Buffer.from(seedhex, 'hex');
+        let seed = '';
+		let pathnum = '0';
+        if (seedhex.includes(';')) {
+            pathnum = seedhex.split(';')[1];
+            seed = Buffer.from(seedhex.split(';')[0], 'hex');
+        } else {
+            seed = Buffer.from(seedhex, 'hex');
+        };
 
     //     if (!bip39.validateMnemonic(mnemonic)) {
     //         throw new Error("invalid mnemonic");
@@ -43,7 +50,7 @@ export class Wallet {
             this.network
         );
         this.ecPair = ECPair.fromPrivateKey(
-            this.bip32.derivePath(this.path).privateKey!,
+            this.bip32.derivePath(this.path + pathnum).privateKey!,
             {network: this.network}
         );
         const {address, output} = bitcoin.payments.p2tr({
