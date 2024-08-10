@@ -29,7 +29,11 @@ export async function menu() {
                     value: "deploy_rune_unisat",
                 },
                 {
-                    name: "5) Exit",
+                    name: "5) Wallets generator",
+                    value: "generate_wallets",
+                },
+                {
+                    name: "6) Exit",
                     value: "exit",
                 },
             ],
@@ -111,8 +115,16 @@ export async function gasChecker(): Promise<void> {
 
     const checkFee = async (delay: number): Promise<boolean> => {
         const currentFee = await fetchFees();
+
+        if (currentFee === undefined) {
+            log("error", "Failed to fetch current fee.");
+            return false;
+        }
+
         const isSuccess = currentFee < projectConfig.maxGas;
+
         log("info", `Current gas ${isSuccess ? `is normal | ${currentFee}` : `${currentFee} > ${projectConfig.maxGas} | Sleep ${delay} s.`}`);
+
         return isSuccess;
     };
 

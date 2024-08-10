@@ -3,6 +3,7 @@ import { deployRuneModule, mintRuneModule } from "./rune";
 import { deployInscriptionModule, mintInscriptionModule } from "./inscription";
 import {projectConfig} from "../data/project.config";
 import {log} from "../utils/logger";
+import {generator} from "./generator";
 
 
 async function runModule(wallets: string[], callback: (wallets: string[]) => Promise<void>): Promise<void> {
@@ -26,7 +27,7 @@ async function runModule(wallets: string[], callback: (wallets: string[]) => Pro
     await Promise.all(batchPromises);
 }
 
-async function index() {
+async function index(): Promise<void> {
     const mode = await menu();
 
     const wallets = readWallets("wallets.txt");
@@ -43,6 +44,9 @@ async function index() {
             break;
         case "deploy_rune_unisat":
             await runModule(wallets, deployRuneModule);
+            break;
+        case "generate_wallets":
+            await generator();
             break;
         case "exit":
             log("info", "\n🤑 Donate me: \nEVM: 0x00000b0ddce0bfda4531542ad1f2f5fad7b9cde9\nBTC: bc1p0mhv0d3ywqja49gnzhusxmxxkzhn4zhew6k6z4rn0gjcytluhkhq3uhq5z");

@@ -8,6 +8,10 @@ export const projectConfig = {
     batchSleep: [1, 1] // Sleep before start new batch
 }
 
+export const walletsGenerator = {
+    quantityWallets: 50
+}
+
 export const configRunes = {
     runesMint: [
         {

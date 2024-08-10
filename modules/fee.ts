@@ -2,7 +2,7 @@ import axios from "axios";
 import { projectConfig } from "../data/project.config";
 import {log} from "../utils/logger";
 
-export async function fetchFees(): Promise<any> {
+export async function fetchFees(): Promise<number | undefined> {
     try {
         const response = await axios.get('https://mempool.space/api/v1/fees/recommended');
 
