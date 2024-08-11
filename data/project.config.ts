@@ -25,7 +25,7 @@ export const configRunes = {
             "count": 1
         },
     ],
-    quantityRunesMint: [1, 2], //quantity rune mint per wallet: min,
+    quantityRunesMint: [1, 10], //quantity rune mint per wallet: min,
     runeDeployPrice: 330,
     sleep: [10, 20]
 }

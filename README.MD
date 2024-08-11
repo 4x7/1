@@ -43,5 +43,7 @@ npm run start
 
 4. Deploy rune on Unisat
 
+5. Wallets generator
+
 ---
 Look for all updates and other developments here –– https://t.me/sybilwave

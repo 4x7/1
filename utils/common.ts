@@ -58,9 +58,16 @@ export function toXOnly(pubkey: Buffer): Buffer {
 }
 
 export function getRandomElements(arr: any, min: number, max: number) {
-    const numberOfElements = Math.floor(Math.random() * (max - min + 1)) + min;
-    const shuffled = arr.slice().sort(() => 0.5 - Math.random());
-    return shuffled.slice(0, numberOfElements);
+    const count = Math.floor(Math.random() * (max - min + 1)) + min;
+
+    const result = [];
+
+    for (let i = 0; i < count; i++) {
+        const randomIndex = Math.floor(Math.random() * arr.length);
+        result.push(arr[randomIndex]);
+    }
+
+    return result;
 }
 
 export async function sleep(seconds: number[]): Promise<void> {
