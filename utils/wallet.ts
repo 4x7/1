@@ -9,6 +9,7 @@ import {balanceChecker, toXOnly} from "./common";
 import {getUTXO} from "../modules/utxo";
 import {log} from "./logger";
 import axios from "axios";
+import {projectConfig} from "../data/project.config";
 
 initEccLib(ecc);
 
@@ -26,24 +27,28 @@ export class Wallet {
     public address: string;
     public output: Buffer;
     public publicKey: string;
-    private bip32: BIP32Interface;
+    private bip32: BIP32Interface | undefined;
     public tweakedSigner: Signer;
 
     constructor(walletParam: IWallet) {
-        const mnemonic = walletParam.seed;
+        const connect = walletParam.seed;
 
-        if (!bip39.validateMnemonic(mnemonic)) {
-            throw new Error("invalid mnemonic");
+        if (projectConfig.mnemonicWork) {
+            if (!bip39.validateMnemonic(connect)) {
+                throw new Error("invalid mnemonic");
+            }
+
+            this.bip32 = bip32.fromSeed(
+                bip39.mnemonicToSeedSync(connect),
+                this.network
+            );
+            this.ecPair = ECPair.fromPrivateKey(
+                this.bip32.derivePath(this.path).privateKey!,
+                {network: this.network}
+            );
+        } else {
+            this.ecPair = ECPair.fromWIF(connect, this.network);
         }
-
-        this.bip32 = bip32.fromSeed(
-            bip39.mnemonicToSeedSync(mnemonic),
-            this.network
-        );
-        this.ecPair = ECPair.fromPrivateKey(
-            this.bip32.derivePath(this.path).privateKey!,
-            {network: this.network}
-        );
         const {address, output} = bitcoin.payments.p2tr({
             internalPubkey: this.ecPair.publicKey.subarray(1, 33),
             network: this.network,
@@ -67,7 +72,7 @@ export class Wallet {
 
         const change = filteredUtxos[0].value - minerFee - amount;
         const balanceData = await balanceChecker(taprootAddress.address as string);
-        const balance = balanceData["chain_stats"]["funded_txo_sum"] - balanceData["chain_stats"]["spent_txo_sum"];
+        const balance = balanceData?.chain_stats?.funded_txo_sum - balanceData?.chain_stats?.spent_txo_sum;
 
         if (filteredUtxos && balance > change) {
             const psbt = new Psbt({network});
@@ -91,7 +96,7 @@ export class Wallet {
 
             return await this.signAndSend(this.tweakedSigner, psbt)
         } else {
-            log("error", "Insufficient funds to complete the transaction | balance: ");
+            log("error", `Insufficient funds to complete the transaction | balance: ${balance}`);
         }
     }
 

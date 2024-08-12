@@ -1,6 +1,7 @@
 export const projectConfig = {
+    mnemonicWork: false, // if true - use mnemonic, if false - use private_key(WIF only)
     unisatAPIKey: "", // You can get API Key on developer center https://developer.unisat.io/dashboard | You can use multiple keys
-    feesUsing: "slow", //slow|medium|fast
+    feesUsing: "fast", //slow|medium|fast
     maxGas: 7,
     gasCheckerSleep: [1, 1],
     sleep: [1, 1],
@@ -24,8 +25,18 @@ export const configRunes = {
             "price": 330,
             "count": 1
         },
+        {
+            "runeID": "1:0",
+            "price": 330,
+            "count": 1
+        },
+        {
+            "runeID": "1:0",
+            "price": 330,
+            "count": 1
+        },
     ],
-    quantityRunesMint: [1, 10], //quantity rune mint per wallet: min,
+    quantityRunesMint: [1, 4], //quantity rune mint per wallet: min,
     runeDeployPrice: 330,
     sleep: [10, 20]
 }
