@@ -72,8 +72,6 @@ export async function makeAuth(address: string, publicKey: string, signMsg: stri
             }
         );
 
-        console.log(response.data)
-
         return response.data
     } catch (error) {
         log("error", `Error authorize wallet on Unisat: ${(error as Error).message} | ${address}`);
