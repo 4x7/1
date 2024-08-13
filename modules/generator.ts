@@ -21,7 +21,7 @@ interface Wallet {
     address: string;
 }
 
-export async function generator(): Promise<void> {
+async function generator(): Promise<void> {
     const wallets: Wallet[] = [];
 
     for (let i = 0; i < walletsGenerator.quantityWallets; i++) {
@@ -58,4 +58,11 @@ export async function generator(): Promise<void> {
     });
 
     log("info", `CSV file with created wallets successfully created: ${filePath}\n`)
+}
+
+if (require.main === module) {
+    generator().catch(err => {
+        console.error("Error:", err);
+        process.exit(1);
+    });
 }

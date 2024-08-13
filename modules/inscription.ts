@@ -1,83 +1,105 @@
-import { Wallet } from "../utils/wallet";
+import {Wallet} from "../utils/wallet";
 
-import { gasChecker, generateRandomWord, getRandomElements, sleep } from '../utils/common';
-import { fetchFees } from "./fee";
+import {asciiToHex, gasChecker, generateRandomWord, getRandomElements, sleep} from '../utils/common';
+import {fetchFees} from "./fee";
 import axios from "axios";
-import { configInscription, projectConfig } from "../data/project.config";
+import {configInscription, projectConfig} from "../data/project.config";
 import {log} from "../utils/logger";
+import {getAuthData, makeAuth, signConverter} from "./unisat";
 
 export async function mintInscriptionModule(wallets: string[]): Promise<void> {
     for (const seed of wallets) {
-        const wallet = new Wallet({ seed });
+        const wallet = new Wallet({seed});
 
-        const inscriptionForMint = getRandomElements(configInscription.inscriptionMint, configInscription.quantityMint[0], configInscription.quantityMint[1]);
+        const authData = await getAuthData(wallet.address)
+        const sign = wallet.signMessage(authData?.data?.signMsg)
 
-        for (const inscription of inscriptionForMint) {
-            const inscriptionInfo = await getInscriptionInfo(inscription.name);
+        const status = await makeAuth(wallet.address, wallet.publicKey, sign)
 
-            if (inscriptionInfo?.data) {
-                const inscriptionName = inscriptionInfo["data"]["ticker"];
-                log("info", `Make mint ${inscription.amount} inscription "${inscriptionName}"`);
+        if (status?.msg === "ok") {
+            const inscriptionForMint = getRandomElements(configInscription.inscriptionMint, configInscription.quantityMint[0], configInscription.quantityMint[1]);
 
-                let result = await createOrderInscription(inscription, wallet.address, inscription.amount);
+            for (const inscription of inscriptionForMint) {
+                const inscriptionInfo = await getInscriptionInfo(inscription.name);
 
-                if (result?.data?.payAddress) {
-                    await gasChecker();
-                    await wallet.makeTransaction(result["data"]["payAddress"], result["data"]["amount"], result["data"]["minerFee"]);
+                if (inscriptionInfo?.data) {
+                    const inscriptionName = inscriptionInfo["data"]["ticker"];
+                    log("info", `Make mint ${inscription.amount} inscription "${inscriptionName}" | ${wallet.address}`);
+
+                    let result = await createOrderInscription(inscription, wallet.address, inscription.amount);
+
+                    if (result?.data?.payAddress) {
+                        await gasChecker();
+                        await wallet.makeTransaction(result["data"]["payAddress"], result["data"]["amount"], result["data"]["minerFee"]);
+                    } else {
+                        log("error", `Mint error: ${result["msg"]} | ${wallet.address}`);
+                    }
                 } else {
-                    log("error", `Mint error: ${result["msg"]}`);
+                    log("error", `Inscription ${inscription.name} not found | ${wallet.address}`);
                 }
-            } else {
-                log("error", `Inscription ${inscription.name} not found`);
+                await sleep(configInscription.sleep);
             }
-            await sleep(configInscription.sleep);
+            await sleep(projectConfig.sleep);
         }
-        await sleep(projectConfig.sleep);
     }
 }
 
 export async function deployInscriptionModule(wallets: string[]): Promise<void> {
     for (const seed of wallets) {
-        const wallet = new Wallet({ seed });
+        const wallet = new Wallet({seed});
 
         const inscriptionName = await generateRandomWord(5, 5);
 
-        const inscriptionInfo = await getInscriptionInfo(inscriptionName);
+        const authData = await getAuthData(wallet.address)
+        const sign = wallet.signMessage(authData?.data?.signMsg)
 
-        if (inscriptionInfo?.data === null) {
-            log("info", `Make deploy inscription "${inscriptionName}"`);
+        const status = await makeAuth(wallet.address, wallet.publicKey, sign)
 
-            let result = await deployOrderInscription(inscriptionName, wallet.address);
+        if (status?.msg === "ok") {
+            const inscriptionInfo = await getInscriptionInfo(inscriptionName);
 
-            if (result?.data?.payAddress) {
-                await gasChecker();
-                await wallet.makeTransaction(result["data"]["payAddress"], result["data"]["amount"], result["data"]["minerFee"]);
+            if (inscriptionInfo?.data === null) {
+                log("info", `Make deploy inscription "${inscriptionName}" | ${wallet.address}`);
+
+                let result = await deployOrderInscription(inscriptionName, wallet.address);
+
+                if (result?.data?.payAddress) {
+                    await gasChecker();
+                    await wallet.makeTransaction(result["data"]["payAddress"], result["data"]["amount"], result["data"]["minerFee"]);
+                } else {
+                    log("error", `Deploy error: ${result["msg"]} | ${wallet.address}`);
+                }
             } else {
-                log("error", `Deploy error: ${result["msg"]}`);
-            }
-        } else {
-            log("error", `The inscription ${inscriptionName} already exists`);
+                log("error", `The inscription ${inscriptionName} already exists | ${wallet.address}`);
 
-            await deployInscriptionModule(wallets);
+                await deployInscriptionModule(wallets);
+            }
+            await sleep(configInscription.sleep);
         }
-        await sleep(configInscription.sleep);
     }
 }
 
 async function getInscriptionInfo(name: string) {
     try {
+        const endpoint = `/query-v4/brc20/${asciiToHex(name)}/info`
+
+        const {sign, token, ts} = signConverter(endpoint, '')
+
         const response = await axios.get(
-            `https://open-api.unisat.io/v1/indexer/brc20/${name}/info`,
+            `https://api.unisat.space${endpoint}`,
             {
                 headers: {
-                    "Authorization": `Bearer ${projectConfig.unisatAPIKey}`
+                    "x-sign": sign,
+                    "x-ts": ts,
+                    "cf-token": token,
+                    "x-appid": "1adcd7969603261753f1812c9461cd36"
                 }
             }
         );
 
         return response.data;
     } catch (error) {
-        log("error", `Error fetching recommended fees: ${(error as Error).message}`);
+        log("error", `Error fetching inscription info: ${(error as Error).message}`);
     }
 }
 

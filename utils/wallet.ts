@@ -1,11 +1,12 @@
 import * as bitcoin from "bitcoinjs-lib";
-import {crypto, initEccLib, networks, payments, Psbt, Transaction} from "bitcoinjs-lib";
+import * as bitcoinMessage from "bitcoinjs-message";
+import {crypto, initEccLib, networks, payments, Psbt} from "bitcoinjs-lib";
 import * as ecc from "tiny-secp256k1";
 import * as bip39 from "bip39";
 import BIP32Factory, {type BIP32Interface} from "bip32";
 import ECPairFactory, {type ECPairInterface, Signer} from "ecpair";
 import {Signer as BTCSigner} from "bitcoinjs-lib/src/psbt";
-import {balanceChecker, toXOnly} from "./common";
+import {mempoolChecker, toXOnly} from "./common";
 import {getUTXO} from "../modules/utxo";
 import {log} from "./logger";
 import axios from "axios";
@@ -70,11 +71,10 @@ export class Wallet {
         const utxos = await getUTXO(taprootAddress.address as string);
         const filteredUtxos = utxos.filter((utxo) => utxo.value > 5000);
 
-        const change = filteredUtxos[0].value - minerFee - amount;
-        const balanceData = await balanceChecker(taprootAddress.address as string);
+        const balanceData = await mempoolChecker(taprootAddress.address as string);
         const balance = balanceData?.chain_stats?.funded_txo_sum - balanceData?.chain_stats?.spent_txo_sum;
 
-        if (filteredUtxos && balance > change) {
+        if (filteredUtxos.length > 0 && balance > (filteredUtxos[0].value - minerFee - amount)) {
             const psbt = new Psbt({network});
 
             psbt.addInput({
@@ -91,7 +91,7 @@ export class Wallet {
 
             psbt.addOutput({
                 address: taprootAddress.address as string,
-                value: change,
+                value: filteredUtxos[0].value - minerFee - amount,
             });
 
             return await this.signAndSend(this.tweakedSigner, psbt)
@@ -144,6 +144,11 @@ export class Wallet {
         return ECPair.fromPrivateKey(Buffer.from(tweakedPrivateKey), {
             network: opts.network,
         });
+    }
+
+    signMessage(message: string) {
+        const signature = bitcoinMessage.sign(message, this.ecPair.privateKey!, this.ecPair.compressed)
+        return signature.toString('base64')
     }
 
 }

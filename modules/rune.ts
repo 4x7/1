@@ -1,4 +1,4 @@
-import { Wallet } from "../utils/wallet";
+import {Wallet} from "../utils/wallet";
 
 import {
     gasChecker,
@@ -7,66 +7,83 @@ import {
     getRandomElements,
     sleep,
 } from '../utils/common';
-import { fetchFees } from "./fee";
+import {fetchFees} from "./fee";
 import axios from "axios";
-import { configRunes, projectConfig } from "../data/project.config";
+import {configRunes, projectConfig} from "../data/project.config";
 import {log} from "../utils/logger";
+import {getAuthData, makeAuth} from "./unisat";
 
 export async function mintRuneModule(wallets: string[]): Promise<void> {
     for (const seed of wallets) {
-        const wallet = new Wallet({ seed });
+        const wallet = new Wallet({seed});
 
-        const runesForMint = getRandomElements(configRunes.runesMint, configRunes.quantityRunesMint[0], configRunes.quantityRunesMint[1]);
+        const authData = await getAuthData(wallet.address)
+        const sign = wallet.signMessage(authData?.data?.signMsg)
 
-        for (const rune of runesForMint) {
-            const runeInfo = await getRuneInfo(rune.runeID);
+        const status = await makeAuth(wallet.address, wallet.publicKey, sign)
 
-            if (runeInfo?.data) {
-                const runeName = runeInfo["data"]["rune"];
-                log("info", `Make mint ${rune.count} rune "${runeName}"`);
+        console.log(status)
 
-                let result = await createOrderRune(rune, wallet.address);
+        if (status?.msg === "ok") {
+            const runesForMint = getRandomElements(configRunes.runesMint, configRunes.quantityRunesMint[0], configRunes.quantityRunesMint[1]);
 
-                if (result?.data?.payAddress) {
-                    await gasChecker();
-                    await wallet.makeTransaction(result["data"]["payAddress"], result["data"]["amount"], result["data"]["minerFee"]);
+            for (const rune of runesForMint) {
+                const runeInfo = await getRuneInfo(rune.runeID);
+
+                if (runeInfo?.data) {
+                    const runeName = runeInfo["data"]["rune"];
+                    log("info", `Make mint ${rune.count} rune "${runeName}" | ${wallet.address}`);
+
+                    let result = await createOrderRune(rune, wallet.address);
+
+                    if (result?.data?.payAddress) {
+                        await gasChecker();
+                        await wallet.makeTransaction(result["data"]["payAddress"], result["data"]["amount"], result["data"]["minerFee"]);
+                    } else {
+                        log("error", `Mint error: ${result["msg"]} | ${wallet.address}`);
+                    }
                 } else {
-                    log("error", `Mint error: ${result["msg"]}`);
+                    log("error", `Rune ${rune.runeID} not found | ${wallet.address}`);
                 }
-            } else {
-                log("error", `Rune ${rune.runeID} not found`);
+                await sleep(configRunes.sleep);
             }
-            await sleep(configRunes.sleep);
+            await sleep(projectConfig.sleep);
         }
-        await sleep(projectConfig.sleep);
     }
 }
 
 export async function deployRuneModule(wallets: string[]): Promise<void> {
     for (const seed of wallets) {
-        const wallet = new Wallet({ seed });
+        const wallet = new Wallet({seed});
 
         const runeName = await generateRandomWord(12, 20);
 
-        const runeInfo = await getRuneInfo(runeName);
+        const authData = await getAuthData(wallet.address)
+        const sign = wallet.signMessage(authData?.data?.signMsg)
 
-        if (runeInfo?.data == null) {
-            log("info", `Make deploy rune "${runeName}"`);
+        const status = await makeAuth(wallet.address, wallet.publicKey, sign)
 
-            let result = await deployOrderRune(runeName, wallet.address);
+        if (status?.msg === "ok") {
+            const runeInfo = await getRuneInfo(runeName);
 
-            if (result?.data?.payAddress) {
-                await gasChecker();
-                await wallet.makeTransaction(result["data"]["payAddress"], result["data"]["amount"], result["data"]["minerFee"]);
+            if (runeInfo?.data == null) {
+                log("info", `Make deploy rune "${runeName}" | ${wallet.address}`);
+
+                let result = await deployOrderRune(runeName, wallet.address);
+
+                if (result?.data?.payAddress) {
+                    await gasChecker();
+                    await wallet.makeTransaction(result["data"]["payAddress"], result["data"]["amount"], result["data"]["minerFee"]);
+                } else {
+                    log("error", `Deploy error: ${result["msg"]} | ${wallet.address}`);
+                }
             } else {
-                log("error", `Deploy error: ${result["msg"]}`);
-            }
-        } else {
-            log("error", `The rune ${runeName} already exists`);
+                log("error", `The rune ${runeName} already exists | ${wallet.address}`);
 
-            await deployRuneModule(wallets);
+                await deployRuneModule(wallets);
+            }
+            await sleep(configRunes.sleep);
         }
-        await sleep(configRunes.sleep);
     }
 }
 
@@ -76,7 +93,7 @@ async function getRuneInfo(runeID: string) {
 
         return response.data;
     } catch (error) {
-        log("error", `Error fetching recommended fees: ${(error as Error).message}`);
+        log("error", `Error fetching rune info: ${(error as Error).message}`);
     }
 }
 
@@ -151,6 +168,6 @@ async function deployOrderRune(rune: string, recipient: string): Promise<any> {
 
         return response.data;
     } catch (error) {
-       log("error", `Error: ${(error as Error).message}`);
+        log("error", `Error: ${(error as Error).message}`);
     }
 }

@@ -4,6 +4,7 @@ import {fetchFees} from "../modules/fee";
 import {projectConfig} from "../data/project.config";
 import axios from "axios";
 import {log} from "./logger";
+import {createHash} from "crypto";
 
 export async function menu() {
     console.log("❤️ Subscribe to me – https://t.me/sybilwave\n");
@@ -29,11 +30,7 @@ export async function menu() {
                     value: "deploy_rune_unisat",
                 },
                 {
-                    name: "5) Wallets generator",
-                    value: "generate_wallets",
-                },
-                {
-                    name: "6) Exit",
+                    name: "5) Exit",
                     value: "exit",
                 },
             ],
@@ -153,23 +150,24 @@ export async function gasChecker(): Promise<void> {
     });
 }
 
-async function getBalance(address: string): Promise<any> {
+export async function getBalance(address: string): Promise<any> {
     try {
         const response = await axios.get(`https://mempool.space/api/address/${address}`);
 
         return response.data;
     } catch (error) {
-        log("error", `Error fetching balance: ${(error as Error).message}`);
+        log("error", `Error fetching balance: ${(error as Error).message} | ${address}`);
+        await getBalance(address)
     }
 }
 
-export async function balanceChecker(address: string): Promise<any> {
+export async function mempoolChecker(address: string): Promise<any> {
     log('info', `Check mempool at this address: ${address}`);
 
     const checkBalance = async (): Promise<boolean> => {
         const userBalance = await getBalance(address);
         const isEmpty = userBalance?.mempool_stats?.funded_txo_count === 0;
-        log('info', `User mempool ${isEmpty ? `is empty!` : `is not empty! Sleep 30s.`}`);
+        log('info', `User mempool ${isEmpty ? `is empty! | ${address}` : `is not empty! Sleep 30s. | ${address}`}`);
         return isEmpty;
     };
 
@@ -185,4 +183,22 @@ export async function balanceChecker(address: string): Promise<any> {
 
         const intervalId = setInterval(checkAndResolve, 30000); // Повтор через 30 секунд
     });
+}
+
+export function randomString(length: number): string {
+    const characters = 'abcdefghijklmnopqrstuvwxyz0123456789';
+    let result = '';
+    for (let i = 0; i < length; i++) {
+        result += characters.charAt(Math.floor(Math.random() * characters.length));
+    }
+    return result;
+}
+
+export function asciiToHex(asciiString: string): string {
+    let hexString = '';
+    for (let i = 0; i < asciiString.length; i++) {
+        const hex = asciiString.charCodeAt(i).toString(16);
+        hexString += hex;
+    }
+    return hexString;
 }

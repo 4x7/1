@@ -1,6 +1,5 @@
 export const projectConfig = {
-    mnemonicWork: false, // if true - use mnemonic, if false - use private_key(WIF only)
-    unisatAPIKey: "", // You can get API Key on developer center https://developer.unisat.io/dashboard | You can use multiple keys
+    mnemonicWork: true, // if true - use mnemonic, if false - use private_key(WIF only)
     feesUsing: "fast", //slow|medium|fast
     maxGas: 7,
     gasCheckerSleep: [1, 1],

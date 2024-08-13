@@ -43,7 +43,9 @@ npm run start
 
 4. Deploy rune on Unisat
 
-5. Wallets generator
+5. Wallets generator (run in cmd: npm run generator)
+
+6. Points checker (run in cmd: npm run checker)
 
 ---
 Look for all updates and other developments here –– https://t.me/sybilwave
